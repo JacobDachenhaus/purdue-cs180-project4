@@ -15,7 +15,9 @@ public class MP3Server {
         MP3Server server;
 
         try {
+
             server = new MP3Server(3000);
+
         } catch (IOException e) {
 
             System.out.println("<An unexpected exception occurred>");
@@ -42,7 +44,7 @@ public class MP3Server {
 
     public void listen() {
 
-        Socket client;
+        Socket clientSocket;
         ClientHandler requestHandler;
 
         System.out.println("<Starting the server>");
@@ -50,7 +52,7 @@ public class MP3Server {
         while (!serverSocket.isClosed()) {
 
             try {
-                client = serverSocket.accept();
+                clientSocket = serverSocket.accept();
             } catch (IOException e) {
 
                 System.out.println("<An unexpected exception occurred>");
@@ -60,8 +62,8 @@ public class MP3Server {
 
                 try {
                     serverSocket.close();
-                } catch (IOException e2) {
-                    e2.printStackTrace();
+                } catch (IOException i) {
+                    i.printStackTrace();
                 }
 
                 return;
@@ -69,7 +71,7 @@ public class MP3Server {
             }
 
             System.out.println("<Connected to a client>");
-            requestHandler = new ClientHandler(client);
+            requestHandler = new ClientHandler(clientSocket);
 
             new Thread(requestHandler).start();
 
@@ -110,6 +112,9 @@ final class ClientHandler implements Runnable {
      */
     public void run() {
 
+        SongRequest request;
+        SongHeaderMessage message;
+
         try {
 
             inputStream = new ObjectInputStream(clientSocket.getInputStream());
@@ -119,12 +124,55 @@ final class ClientHandler implements Runnable {
 
             System.out.println("<An unexpected exception occurred>");
             System.out.printf("<Exception message> %s", e.getMessage());
+            return;
+
+        }
+
+        try {
+            request = (SongRequest) inputStream.readObject();
+        } catch (Exception e) {
+
+            System.out.println("<An unexpected exception occurred>");
+            System.out.printf("<Exception message> %s", e.getMessage());
+            return;
+
+        }
+
+        if (request.isDownloadRequest()) {
+
+            String artistName = request.getArtistName();
+            String songName = request.getSongName();
+
+            String fileName = String.format("%s - %s.mp3", artistName, songName);
+            byte[] data = readSongData(fileName);
+
+            message = fileInRecord(fileName)
+                    ? new SongHeaderMessage(true, artistName, songName, data.length)
+                    : new SongHeaderMessage(true, "", "", -1);
+
+            try {
+
+                outputStream.writeObject(message);
+                sendByteArray(data);
+
+            } catch (IOException e) {
+
+                System.out.println("<An unexpected exception occurred>");
+                System.out.printf("<Exception message> %s", e.getMessage());
+
+            }
 
             return;
 
         }
 
-        // TODO: Receive Input
+        message = new SongHeaderMessage(false);
+
+        try {
+            outputStream.writeObject(message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -195,6 +243,10 @@ final class ClientHandler implements Runnable {
      * @param songData the byte array to send to the clientSocket
      */
     private void sendByteArray(byte[] songData) {
+
+        if (songData == null) {
+            return;
+        }
 
         int chunkStart = 0;
         int chunkLength;
