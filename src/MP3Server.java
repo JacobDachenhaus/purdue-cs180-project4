@@ -49,7 +49,7 @@ public class MP3Server {
 
         System.out.println("<Starting the server>");
 
-        while (!serverSocket.isClosed()) {
+        while (serverSocket.isBound()) {
 
             try {
                 clientSocket = serverSocket.accept();
@@ -144,7 +144,7 @@ final class ClientHandler implements Runnable {
             String songName = request.getSongName();
 
             String fileName = String.format("%s - %s.mp3", artistName, songName);
-            byte[] data = readSongData(fileName);
+            byte[] data = readSongData("songDatabase/" + fileName);
 
             message = fileInRecord(fileName)
                     ? new SongHeaderMessage(true, artistName, songName, data.length)
@@ -173,6 +173,8 @@ final class ClientHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        sendRecordData();
 
     }
 
@@ -216,23 +218,25 @@ final class ClientHandler implements Runnable {
      */
     private static byte[] readSongData(String fileName) {
 
+        FileInputStream inputStream;
+
         File file = new File(fileName);
         byte[] bytes = new byte[(int) file.length()];
 
-        FileInputStream inputStream;
-
         try {
 
-            inputStream = new FileInputStream(file);
+            inputStream = new FileInputStream(fileName);
             inputStream.read(bytes);
-
-            return bytes;
+            inputStream.close();
 
         } catch (IOException e) {
+
             e.printStackTrace();
+            return null;
+
         }
 
-        return null;
+        return bytes;
 
     }
 
@@ -255,6 +259,8 @@ final class ClientHandler implements Runnable {
 
             while (chunkStart < songData.length) {
 
+                // TODO: Fix Chunk-ing
+
                 if (chunkStart + 1000 > songData.length) {
                     chunkLength = songData.length - chunkStart;
                 } else {
@@ -264,7 +270,7 @@ final class ClientHandler implements Runnable {
                 SongDataMessage message = new SongDataMessage(Arrays.copyOfRange(songData, chunkStart, chunkLength));
                 outputStream.writeObject(message);
 
-                chunkStart += 1000;
+                chunkStart = chunkLength;
 
             }
 
@@ -291,7 +297,7 @@ final class ClientHandler implements Runnable {
 
             while ((nextLine = reader.readLine()) != null) {
 
-                String songName = nextLine.substring(nextLine.indexOf("-") + 1, nextLine.length() - 4);
+                String songName = nextLine.substring(nextLine.indexOf("-") + 2, nextLine.length() - 4);
                 String artistName = nextLine.substring(0, nextLine.indexOf("-") - 1);
 
                 nextLine = String.format("\"%s\" by: %s", songName, artistName);
