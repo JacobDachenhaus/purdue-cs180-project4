@@ -205,7 +205,7 @@ final class ResponseListener implements Runnable {
 
             }
 
-            String fileName = String.format("savedSongs/%s - %s.mp3", response.getArtistName(), response.getSongName());
+            String fileName = String.format("savedSongs/%s - %s.mp3", response.getSongName(), response.getArtistName());
 
             SongDataMessage data = null;
             int chunkTotal = 0;
@@ -225,6 +225,7 @@ final class ResponseListener implements Runnable {
 
                 System.out.println(String.format("<Downloading File (%d/%d)>", chunkTotal, fileSize));
                 writeByteArrayToFile(bytes, fileName);
+                if (chunkTotal == fileSize) break;
 
             }
 

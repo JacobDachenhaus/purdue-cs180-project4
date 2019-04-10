@@ -128,53 +128,54 @@ final class ClientHandler implements Runnable {
 
         }
 
-        try {
-            request = (SongRequest) inputStream.readObject();
-        } catch (Exception e) {
-
-            System.out.println("<An unexpected exception occurred>");
-            System.out.printf("<Exception message> %s", e.getMessage());
-            return;
-
-        }
-
-        if (request.isDownloadRequest()) {
-
-            String artistName = request.getArtistName();
-            String songName = request.getSongName();
-
-            String fileName = String.format("%s - %s.mp3", artistName, songName);
-            byte[] data = readSongData("songDatabase/" + fileName);
-
-            message = fileInRecord(fileName)
-                    ? new SongHeaderMessage(true, artistName, songName, data.length)
-                    : new SongHeaderMessage(true, "", "", -1);
-
+        while (clientSocket.isConnected())
+        {
             try {
-
-                outputStream.writeObject(message);
-                sendByteArray(data);
-
-            } catch (IOException e) {
+                request = (SongRequest) inputStream.readObject();
+            } catch (Exception e) {
 
                 System.out.println("<An unexpected exception occurred>");
                 System.out.printf("<Exception message> %s", e.getMessage());
+                return;
 
             }
 
-            return;
+            if (request.isDownloadRequest()) {
 
+                String artistName = request.getArtistName();
+                String songName = request.getSongName();
+
+                String fileName = String.format("%s - %s.mp3", artistName, songName);
+                byte[] data = readSongData("songDatabase/" + fileName);
+
+                message = fileInRecord(fileName)
+                        ? new SongHeaderMessage(true, artistName, songName, data.length)
+                        : new SongHeaderMessage(true, "", "", -1);
+
+                try {
+
+                    outputStream.writeObject(message);
+                    sendByteArray(data);
+
+                } catch (IOException e) {
+
+                    System.out.println("<An unexpected exception occurred>");
+                    System.out.printf("<Exception message> %s", e.getMessage());
+
+                }
+            } else
+            {
+                message = new SongHeaderMessage(false);
+
+                try {
+                    outputStream.writeObject(message);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                sendRecordData();
+            }
         }
-
-        message = new SongHeaderMessage(false);
-
-        try {
-            outputStream.writeObject(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        sendRecordData();
 
     }
 
@@ -258,11 +259,8 @@ final class ClientHandler implements Runnable {
         try {
 
             while (chunkStart < songData.length) {
-
-                // TODO: Fix Chunk-ing
-
                 if (chunkStart + 1000 > songData.length) {
-                    chunkLength = songData.length - chunkStart;
+                    chunkLength = songData.length;
                 } else {
                     chunkLength = chunkStart + 1000;
                 }
