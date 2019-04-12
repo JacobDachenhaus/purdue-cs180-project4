@@ -56,7 +56,7 @@ public class MP3Server {
             } catch (IOException e) {
 
                 System.out.println("<An unexpected exception occurred>");
-                System.out.printf("<Exception message> %s", e.getMessage());
+                System.out.printf("<Exception message> %s\n", e.getMessage());
 
                 System.out.println("<Stopping the server>");
 
@@ -123,19 +123,19 @@ final class ClientHandler implements Runnable {
         } catch (IOException e) {
 
             System.out.println("<An unexpected exception occurred>");
-            System.out.printf("<Exception message> %s", e.getMessage());
+            System.out.printf("<Exception message> %s\n", e.getMessage());
             return;
 
         }
 
-        while (clientSocket.isConnected())
-        {
+        while (clientSocket.isConnected()) {
+
             try {
                 request = (SongRequest) inputStream.readObject();
             } catch (Exception e) {
 
                 System.out.println("<An unexpected exception occurred>");
-                System.out.printf("<Exception message> %s", e.getMessage());
+                System.out.printf("<Exception message> %s\n", e.getMessage());
                 return;
 
             }
@@ -154,17 +154,20 @@ final class ClientHandler implements Runnable {
 
                 try {
 
+                    System.out.println(message);
+
                     outputStream.writeObject(message);
                     sendByteArray(data);
 
                 } catch (IOException e) {
 
                     System.out.println("<An unexpected exception occurred>");
-                    System.out.printf("<Exception message> %s", e.getMessage());
+                    System.out.printf("<Exception message> %s\n", e.getMessage());
 
                 }
-            } else
-            {
+
+            } else {
+
                 message = new SongHeaderMessage(false);
 
                 try {
@@ -174,6 +177,7 @@ final class ClientHandler implements Runnable {
                 }
 
                 sendRecordData();
+
             }
         }
 
@@ -259,6 +263,7 @@ final class ClientHandler implements Runnable {
         try {
 
             while (chunkStart < songData.length) {
+
                 if (chunkStart + 1000 > songData.length) {
                     chunkLength = songData.length;
                 } else {
@@ -298,7 +303,7 @@ final class ClientHandler implements Runnable {
                 String songName = nextLine.substring(nextLine.indexOf("-") + 2, nextLine.length() - 4);
                 String artistName = nextLine.substring(0, nextLine.indexOf("-") - 1);
 
-                nextLine = String.format("\"%s\" by: %s", songName, artistName);
+                nextLine = String.format("* \"%s\" by: %s", songName, artistName);
                 outputStream.writeObject(nextLine);
 
             }

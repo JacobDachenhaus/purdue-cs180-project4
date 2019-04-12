@@ -69,16 +69,16 @@ public class MP3Client {
 
         }
 
-        Scanner inputStream = new Scanner(System.in);
-        System.out.println("What would you like to do?");
-
         ResponseListener responseListener;
+        Scanner inputStream = new Scanner(System.in);
+
+        System.out.println("What would you like to do?");
 
         while (clientSocket.isBound()) {
 
-            System.out.println("- See list of available songs to download: Enter <list>");
-            System.out.println("- Download a Song: Enter <download>");
-            System.out.println("- Exit: Enter <exit>");
+            System.out.println("To see a list of available songs to download enter <list>");
+            System.out.println("To download a song enter <download>");
+            System.out.println("To exit enter <exit>");
 
             System.out.print("Enter your choice: ");
             String choice = inputStream.nextLine();
@@ -91,10 +91,10 @@ public class MP3Client {
                 }
             } else if (choice.equalsIgnoreCase("download")) {
 
-                System.out.println("The name of the desired song: ");
+                System.out.print("Enter the name of the song: ");
                 String songName = inputStream.nextLine();
 
-                System.out.println("The artist of the desired song: ");
+                System.out.print("Enter the artist of the song: ");
                 String artistName = inputStream.nextLine();
 
                 try {
@@ -174,7 +174,7 @@ final class ResponseListener implements Runnable {
         } catch (IOException e) {
 
             System.out.println("<An unexpected exception occurred>");
-            System.out.printf("<Exception message> %s", e.getMessage());
+            System.out.printf("<Exception message> %s\n", e.getMessage());
             return;
 
         }
@@ -186,7 +186,7 @@ final class ResponseListener implements Runnable {
         } catch (Exception e) {
 
             System.out.println("<An unexpected exception occurred>");
-            System.out.printf("<Exception message> %s", e.getMessage());
+            System.out.printf("<Exception message> %s\n", e.getMessage());
             return;
 
         }
@@ -223,12 +223,13 @@ final class ResponseListener implements Runnable {
                 byte[] bytes = data.getData();
                 chunkTotal += bytes.length;
 
-                System.out.println(String.format("<Downloading File (%d/%d)>", chunkTotal, fileSize));
+                System.out.print(String.format("\r<Downloading File (%d/%d)>", chunkTotal, fileSize));
                 writeByteArrayToFile(bytes, fileName);
                 if (chunkTotal == fileSize) break;
 
             }
 
+            System.out.println();
             return;
 
         }
