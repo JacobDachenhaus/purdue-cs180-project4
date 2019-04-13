@@ -114,7 +114,6 @@ final class ClientHandler implements Runnable {
 
         SongRequest request;
         SongHeaderMessage message;
-
         try {
 
             inputStream = new ObjectInputStream(clientSocket.getInputStream());
@@ -177,7 +176,6 @@ final class ClientHandler implements Runnable {
                 }
 
                 sendRecordData();
-
             }
         }
 

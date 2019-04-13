@@ -229,7 +229,6 @@ final class ResponseListener implements Runnable {
 
             }
 
-            System.out.println();
             return;
 
         }
