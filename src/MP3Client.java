@@ -1,106 +1,85 @@
 import java.io.*;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 
 /**
- * An MP3 Client to request .mp3 files from a server and receive them over the socket connection.
+ * Project04 -- MP3
+ * <p>MP3Client</p>
+ *
+ * @author Jacob Dachenhaus & Zach McClary, L17
+ * @version April 12, 2019
  */
+
 public class MP3Client {
 
     private Socket clientSocket;
-
     private ObjectOutputStream outputStream;
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) {
 
         MP3Client client;
 
         try {
             client = new MP3Client("localhost", 3000);
-        } catch (IOException e) {
-
-            System.out.println("<An unexpected exception occurred>");
+        } catch (Exception e) {
             e.printStackTrace();
-
-            System.out.println("<Disconnecting the client>");
             return;
-
         }
 
         client.connect();
 
     }
 
-    public MP3Client(String host, int port) throws IllegalArgumentException, IOException {
-
-        if (host.length() == 0) {
-            throw new IllegalArgumentException("host argument is invalid");
-        }
-
-        if (port < 0) {
-            throw new IllegalArgumentException("port argument is negative");
-        }
-
+    public MP3Client(String host, int port) throws UnknownHostException, IOException {
         clientSocket = new Socket(host, port);
-
+        outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
     }
 
     public void connect() {
 
-        System.out.println("<Connected to the server>");
+        System.out.println("<Connected to server>");
 
-        try {
-            outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
-        } catch (IOException e) {
+        ResponseListener responseListener = new ResponseListener(clientSocket);
 
-            System.out.println("<An unexpected exception occurred>");
-            System.out.printf("<Exception message: %s\n", e.getMessage());
+        Scanner scanner = new Scanner(System.in);
 
-            System.out.println("<Disconnecting the client>");
+        while (true) {
 
-            try {
-                clientSocket.close();
-            } catch (IOException i) {
-                i.printStackTrace();
-            }
+            System.out.println("What would you like to do?");
+            System.out.println("To see all available songs enter <list>");
+            System.out.println("To request a song enter <download>");
+            System.out.println("To quit enter <exit>");
 
-            return;
-
-        }
-
-        ResponseListener responseListener;
-        Scanner inputStream = new Scanner(System.in);
-
-        System.out.println("What would you like to do?");
-
-        while (clientSocket.isBound()) {
-
-            System.out.println("To see a list of available songs to download enter <list>");
-            System.out.println("To download a song enter <download>");
-            System.out.println("To exit enter <exit>");
-
-            System.out.print("Enter your choice: ");
-            String choice = inputStream.nextLine();
+            System.out.print("Choice: ");
+            String choice = scanner.nextLine();
 
             if (choice.equalsIgnoreCase("list")) {
+
+                SongRequest request = new SongRequest(false);
+
                 try {
-                    outputStream.writeObject(new SongRequest(false));
+                    outputStream.writeObject(request);
                 } catch (IOException e) {
                     e.printStackTrace();
+                    break;
                 }
+
             } else if (choice.equalsIgnoreCase("download")) {
 
-                System.out.print("Enter the name of the song: ");
-                String songName = inputStream.nextLine();
+                System.out.print("Song name: ");
+                String songName = scanner.nextLine();
 
-                System.out.print("Enter the artist of the song: ");
-                String artistName = inputStream.nextLine();
+                System.out.print("Artist name: ");
+                String artistName = scanner.nextLine();
+
+                SongRequest request = new SongRequest(true, songName, artistName);
 
                 try {
-                    outputStream.writeObject(new SongRequest(true, songName, artistName));
+                    outputStream.writeObject(request);
                 } catch (IOException e) {
                     e.printStackTrace();
+                    break;
                 }
 
             } else if (choice.equalsIgnoreCase("exit")) {
@@ -114,19 +93,15 @@ public class MP3Client {
                 break;
 
             } else {
-
-                System.out.println("That is an incorrect choice. Please enter one of the following choices:");
+                System.out.println("<Invalid song request>");
                 continue;
-
             }
 
-            responseListener = new ResponseListener(clientSocket);
-
-            Thread t = new Thread(responseListener);
-            t.start();
+            Thread thread = new Thread(responseListener);
+            thread.start();
 
             try {
-                t.join();
+                thread.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -137,58 +112,32 @@ public class MP3Client {
 
 }
 
-
-/**
- * This class implements Runnable, and will contain the logic for listening for
- * server responses. The threads you create in MP3Server will be constructed using
- * instances of this class.
- */
 final class ResponseListener implements Runnable {
 
     private Socket clientSocket;
-
     private ObjectInputStream inputStream;
 
-    public ResponseListener(Socket clientSocket) throws IllegalArgumentException {
-
-        if (clientSocket == null) {
-            throw new IllegalArgumentException("client is null");
-        }
+    public ResponseListener(Socket clientSocket) {
 
         this.clientSocket = clientSocket;
-
-    }
-
-    /**
-     * Listens for a response from the server.
-     * <p>
-     * Continuously tries to read a SongHeaderMessage. Gets the artist name, song name, and file size from that header,
-     * and if the file size is not -1, that means the file exists. If the file does exist, the method then subsequently
-     * waits for a series of SongDataMessages, takes the byte data from those data messages and writes it into a
-     * properly named file.
-     */
-    public void run() {
 
         try {
             inputStream = new ObjectInputStream(clientSocket.getInputStream());
         } catch (IOException e) {
-
-            System.out.println("<An unexpected exception occurred>");
-            System.out.printf("<Exception message> %s\n", e.getMessage());
-            return;
-
+            e.printStackTrace();
         }
+
+    }
+
+    public void run() {
 
         Object object;
 
         try {
             object = inputStream.readObject();
         } catch (Exception e) {
-
-            System.out.println("<An unexpected exception occurred>");
-            System.out.printf("<Exception message> %s\n", e.getMessage());
+            e.printStackTrace();
             return;
-
         }
 
         if (object.getClass() != SongHeaderMessage.class) return;
@@ -199,70 +148,68 @@ final class ResponseListener implements Runnable {
             int fileSize = response.getFileSize();
 
             if (fileSize == -1) {
-
-                System.out.println("Invalid SongRequest");
+                System.out.println("Invalid song request");
                 return;
+            }
+
+            String fileName = String.format("%s - %s.mp3", response.getArtistName(), response.getSongName());
+            File file = new File("savedSongs/" + fileName);
+
+            SongDataMessage message = null;
+            int byteTotal = 0;
+
+            while (byteTotal < fileSize) {
+
+                try {
+                    message = (SongDataMessage) inputStream.readObject();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    continue;
+                }
+
+                byte[] data = message.getData();
+                writeByteArrayToFile(data, file.getPath());
+
+                byteTotal += data.length;
 
             }
 
-            String fileName = String.format("savedSongs/%s - %s.mp3", response.getSongName(), response.getArtistName());
+            System.out.println("<Download complete>");
 
-            SongDataMessage data = null;
-            int chunkTotal = 0;
+        } else {
+
+            String message = null;
 
             while (true) {
 
                 try {
-                    data = (SongDataMessage) inputStream.readObject();
+                    message = (String) inputStream.readObject();
                 } catch (Exception e) {
                     e.printStackTrace();
+                    continue;
                 }
 
-                if (data == null) break;
+                if (message == null) break;
 
-                byte[] bytes = data.getData();
-                chunkTotal += bytes.length;
-
-                System.out.print(String.format("\r<Downloading File (%d/%d)>", chunkTotal, fileSize));
-                writeByteArrayToFile(bytes, fileName);
-                if (chunkTotal == fileSize) break;
+                System.out.println("- " + message);
 
             }
-
-            return;
-
-        }
-
-        String message = null;
-
-        while (true) {
-
-            try {
-                message = (String) inputStream.readObject();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            if (message == null) break;
-            System.out.println(message);
 
         }
 
     }
 
-    /**
-     * Writes the given array of bytes to a file whose name is given by the fileName argument.
-     *
-     * @param songBytes the byte array to be written
-     * @param fileName  the name of the file to which the bytes will be written
-     */
-    private void writeByteArrayToFile(byte[] songBytes, String fileName)
-    {
-        try (FileOutputStream outputStream = new FileOutputStream(fileName)) {
-            outputStream.write(songBytes);
+    public void writeByteArrayToFile(byte[] data, String fileName) {
+
+        FileOutputStream fileOutputStream;
+
+        try {
+            fileOutputStream = new FileOutputStream(fileName, true);
+            fileOutputStream.write(data);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
+
 }
