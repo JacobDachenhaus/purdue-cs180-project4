@@ -26,6 +26,7 @@ hs_err_pid*
 .idea/
 .DS_Store
 *.iml
+out/
 
 # Project files
 savedSongs/*
