@@ -57,6 +57,8 @@ public class MP3Server {
 
             }
 
+            System.out.println("<Connected to a client>");
+
             ClientHandler requestHandler = new ClientHandler(clientSocket);
 
             Thread thread = new Thread(requestHandler);
@@ -97,7 +99,7 @@ final class ClientHandler implements Runnable {
             try {
                 request = (SongRequest) inputStream.readObject();
             } catch (Exception e) {
-                e.printStackTrace();
+                System.out.printf("<Unexpected exception: %s>\n", e.getMessage());
                 break;
             }
 
@@ -106,13 +108,12 @@ final class ClientHandler implements Runnable {
                 String songName = request.getSongName();
                 String artistName = request.getArtistName();
                 String fileName = String.format("%s - %s.mp3", artistName, songName);
-                File file = new File("songDatabase/" + fileName);
 
-                byte[] data = readSongData(file.getPath());
+                byte[] data = readSongData("songDatabase/" + fileName);
 
                 SongHeaderMessage message;
 
-                if (fileInRecord(fileName)) {
+                if (fileInRecord(fileName) && data != null) {
                     message = new SongHeaderMessage(true, songName, artistName, data.length);
                 } else {
                     message = new SongHeaderMessage(true, "", "", -1);
@@ -121,7 +122,7 @@ final class ClientHandler implements Runnable {
                 try {
                     outputStream.writeObject(message);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.out.printf("<Unexpected exception: %s>\n", e.getMessage());
                     break;
                 }
 
@@ -137,7 +138,7 @@ final class ClientHandler implements Runnable {
                 try {
                     outputStream.writeObject(message);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.out.printf("<Unexpected exception: %s>\n", e.getMessage());
                     break;
                 }
 
@@ -146,6 +147,8 @@ final class ClientHandler implements Runnable {
             }
 
         }
+
+        System.out.println("<Disconnected from a client>");
 
     }
 
@@ -204,7 +207,7 @@ final class ClientHandler implements Runnable {
             outputStream.writeObject(null);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.printf("<Unexpected exception: %s>\n", e.getMessage());
         }
 
     }
@@ -214,7 +217,7 @@ final class ClientHandler implements Runnable {
         FileInputStream fileInputStream;
 
         try {
-            fileInputStream = new FileInputStream("record.txt");
+            fileInputStream = new FileInputStream(fileName);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             return null;
@@ -254,9 +257,11 @@ final class ClientHandler implements Runnable {
             try {
                 outputStream.writeObject(message);
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.printf("<Unexpected exception: %s>\n", e.getMessage());
                 break;
             }
+
+            chunkStart = chunkLength;
 
         }
 

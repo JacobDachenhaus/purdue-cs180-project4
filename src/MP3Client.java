@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
+import java.util.Arrays;
 
 /**
  * Project04 -- MP3
@@ -31,7 +32,7 @@ public class MP3Client {
 
     }
 
-    public MP3Client(String host, int port) throws UnknownHostException, IOException {
+    public MP3Client(String host, int port) throws IOException {
         clientSocket = new Socket(host, port);
         outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
     }
@@ -61,7 +62,7 @@ public class MP3Client {
                 try {
                     outputStream.writeObject(request);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.out.printf("<Unexpected exception: %s>\n", e.getMessage());
                     break;
                 }
 
@@ -107,6 +108,8 @@ public class MP3Client {
             }
 
         }
+
+        System.out.println("<Disconnected from the server>");
 
     }
 
@@ -155,7 +158,17 @@ final class ResponseListener implements Runnable {
             String fileName = String.format("%s - %s.mp3", response.getArtistName(), response.getSongName());
             File file = new File("savedSongs/" + fileName);
 
-            SongDataMessage message = null;
+            try {
+                if (!file.createNewFile()) {
+                    System.out.println("File is already saved locally!");
+                    return;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            SongDataMessage message;
             int byteTotal = 0;
 
             while (byteTotal < fileSize) {
@@ -163,7 +176,7 @@ final class ResponseListener implements Runnable {
                 try {
                     message = (SongDataMessage) inputStream.readObject();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    System.out.printf("<Unexpected exception: %s>\n", e.getMessage());
                     continue;
                 }
 
@@ -178,14 +191,14 @@ final class ResponseListener implements Runnable {
 
         } else {
 
-            String message = null;
+            String message;
 
             while (true) {
 
                 try {
                     message = (String) inputStream.readObject();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    System.out.printf("<Unexpected exception: %s>\n", e.getMessage());
                     continue;
                 }
 
@@ -206,6 +219,7 @@ final class ResponseListener implements Runnable {
         try {
             fileOutputStream = new FileOutputStream(fileName, true);
             fileOutputStream.write(data);
+            fileOutputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
