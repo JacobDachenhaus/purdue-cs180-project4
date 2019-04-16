@@ -1,5 +1,6 @@
 import java.io.*;
-import java.net.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Arrays;
 
 /**
@@ -14,6 +15,10 @@ public class MP3Server {
 
     private ServerSocket serverSocket;
 
+    public MP3Server(int port) throws IOException {
+        serverSocket = new ServerSocket(port);
+    }
+
     public static void main(String[] args) {
 
         MP3Server server;
@@ -27,10 +32,6 @@ public class MP3Server {
 
         server.listen();
 
-    }
-
-    public MP3Server(int port) throws IOException {
-        serverSocket = new ServerSocket(port);
     }
 
     public void listen() {
@@ -147,8 +148,6 @@ final class ClientHandler implements Runnable {
             }
 
         }
-
-        System.out.println("<Disconnected from a client>");
 
     }
 

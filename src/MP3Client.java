@@ -1,8 +1,6 @@
 import java.io.*;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.Scanner;
-import java.util.Arrays;
 
 /**
  * Project04 -- MP3
@@ -17,6 +15,11 @@ public class MP3Client {
     private Socket clientSocket;
     private ObjectOutputStream outputStream;
 
+    public MP3Client(String host, int port) throws IOException {
+        clientSocket = new Socket(host, port);
+        outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+    }
+
     public static void main(String[] args) {
 
         MP3Client client;
@@ -30,11 +33,6 @@ public class MP3Client {
 
         client.connect();
 
-    }
-
-    public MP3Client(String host, int port) throws IOException {
-        clientSocket = new Socket(host, port);
-        outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
     }
 
     public void connect() {
@@ -184,6 +182,7 @@ final class ResponseListener implements Runnable {
                 writeByteArrayToFile(data, file.getPath());
 
                 byteTotal += data.length;
+                System.out.print(String.format("<Downloading %d/%d>\r", byteTotal, fileSize));
 
             }
 
