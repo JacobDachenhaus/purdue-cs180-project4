@@ -1,6 +1,6 @@
 # This repo has been archived.
 
-This is an old project of mine and has not been maintained for a while. Please check out my newer projects [here](https://github.com/Sawix).  
+This is an old project of mine and has not been maintained for a while. Please check out my newer projects [here](https://github.com/JacobDachenhaus).  
 Thanks for visiting! ❤️
 
 Reasons for archival:
